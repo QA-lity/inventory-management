@@ -18,6 +18,7 @@
       default = pkgs.mkShell {
         venvDir = ".venv";
         packages = with pkgs; [
+            gitflow
           (with pkgs.python312Packages; [
             venvShellHook
           ])
