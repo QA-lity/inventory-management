@@ -124,7 +124,7 @@ def busqueda_por_nombre(nombre):
     conn.close()
 
     if not productos:
-        print(f"No se encontraron productos con el nombre '{nombre}'.")
+        print(f"\nNo se encontraron productos con el nombre '{nombre}'.")
         return
 
     print("\nResultados de búsqueda:")
@@ -140,7 +140,7 @@ def busqueda_por_categoria(categoria):
     conn.close()
 
     if not productos:
-        print(f"No se encontraron productos de la categoría '{categoria}'.")
+        print(f"\nNo se encontraron productos de la categoría '{categoria}'.")
         return
 
     print("\nResultados de búsqueda:")
@@ -156,7 +156,7 @@ def busqueda_por_precios(inferior, superior):
     conn.close()
 
     if not productos:
-        print(f"No se encontraron productos entre los rangos de precios '{inferior}' y '{superior}'.")
+        print(f"\nNo se encontraron productos entre el rango de precios '{inferior}' y '{superior}'.")
         return
 
     print("\nResultados de búsqueda:")
