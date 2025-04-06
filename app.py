@@ -229,7 +229,7 @@ def menu():
         print("2. Mostrar inventario")
         print("3. Actualizar cantidad de producto")
         print("4. Eliminar producto")
-        print("5. Buscar producto por nombre")
+        print("5. Filtrado y búsqueda")
         print("6. Registrar nuevo usuario")
         print("7. Reporte de inventario")
         print("8. Salir")
@@ -256,8 +256,23 @@ def menu():
             eliminar_producto(id_producto)
 
         elif opcion == "5":
-            nombre = input("Ingrese el nombre del producto a buscar: ")
-            busqueda_por_nombre(nombre)
+            print("\n1. Búsqueda por nombre")
+            print("2. Búsqueda por categoría")
+            print("3. Búsqueda por rango de precios")
+            opcion = input("Seleccione una opción: ")
+
+            if opcion == "1":
+                nombre = input("\nIngrese el nombre del producto a buscar: ")
+                busqueda_por_nombre(nombre)
+
+            elif opcion == "2":
+                categoria = input("\nIngrese la categoría del producto a buscar: ")
+                busqueda_por_categoria(categoria)
+
+            elif opcion == "3":
+                inferior = input("\nIngrese el rango inferior: ")
+                superior = input("Ingrese el rango superior: ")
+                busqueda_por_precios(inferior, superior)
 
         elif opcion == "6":
             registrar_usuario()
