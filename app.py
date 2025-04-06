@@ -189,19 +189,29 @@ def busqueda_por_nombre(nombre):
 
 # Función de búsqueda por categoría
 def busqueda_por_categoria(categoria):
-    conn = conectar_bd()
-    cursor = conn.cursor()
-    cursor.execute("SELECT * FROM productos WHERE categoria LIKE ?", ('%' + categoria + '%',))
-    productos = cursor.fetchall()
-    conn.close()
-
-    if not productos:
-        print(f"\nNo se encontraron productos de la categoría '{categoria}'.")
+    if not categoria.strip():
+        logging.warning("Intento de búsqueda con categoría vacía.")
+        print("\nLa categoría no puede estar vacía.")
         return
 
-    print("\nResultados de búsqueda:")
-    for producto in productos:
-        print(f"ID: {producto[0]} | Nombre: {producto[1]} | Cantidad: {producto[3]} | Precio: ${producto[4]} | Categoría: {producto[5]}")
+    try:
+        conn = conectar_bd()
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM productos WHERE categoria LIKE ?", ('%' + categoria + '%',))
+        productos = cursor.fetchall()
+        conn.close()
+
+        if not productos:
+            logging.info(f"No se encontraron productos de la categoría '{categoria}'.")
+            print(f"\nNo se encontraron productos de la categoría '{categoria}'.")
+            return
+
+        print("\nResultados de búsqueda:")
+        for producto in productos:
+            print(f"ID: {producto[0]} | Nombre: {producto[1]} | Cantidad: {producto[3]} | Precio: ${producto[4]} | Categoría: {producto[5]}")
+    except sqlite3.Error as e:
+        logging.error(f"Error al buscar por categoría: {e}")
+        print("\nError al realizar la búsqueda. Verifique los registros para más detalles.")
 
 # Función de búsqueda por rango de precios
 def busqueda_por_precios(inferior, superior):
