@@ -149,6 +149,46 @@ def registrar_usuario():
     finally:
         conn.close()
 
+# Función para mostrar reporte de inventario
+def reporte_inventario():
+    conn = conectar_bd()
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT COUNT(*), SUM(cantidad * precio) FROM productos WHERE cantidad > 0")
+    total_disponibles, valor_total = cursor.fetchone()
+
+    cursor.execute("SELECT nombre, cantidad FROM productos WHERE cantidad > 0")
+    disponibles = cursor.fetchall()
+
+    cursor.execute("SELECT COUNT(*) FROM productos WHERE cantidad = 0")
+    total_agotados = cursor.fetchone()[0]
+
+    cursor.execute("SELECT nombre FROM productos WHERE cantidad = 0")
+    agotados = cursor.fetchall()
+
+    conn.commit()
+    conn.close()
+
+    print("\n--- Reporte de Inventario ---")
+    if disponibles:
+        print(f"\nProductos disponibles: {total_disponibles}")
+        for nombre, cantidad in disponibles:
+            print(f"- {nombre}: {cantidad} unidades")
+    else:
+        print("\nProductos disponibles: 0")
+
+    print(f"\nValor total del inventario: ${valor_total if valor_total else 0:.2f}")
+
+    if agotados:
+        print(f"\nProductos agotados: {total_agotados}")
+        for (nombre,) in agotados:
+            print(f"- {nombre}")
+    else:
+        print("\nProductos agotados: 0")
+
+# Inicializar la base de datos al ejecutar el script
+inicializar_bd()
+
 # Menú interactivo
 def menu():
     while True:
@@ -159,7 +199,8 @@ def menu():
         print("4. Eliminar producto")
         print("5. Buscar producto por nombre")
         print("6. Registrar nuevo usuario")
-        print("7. Salir")
+        print("7. Reporte de inventario")
+        print("8. Salir")
         opcion = input("Seleccione una opción: ")
 
         if opcion == "1":
@@ -190,6 +231,9 @@ def menu():
             registrar_usuario()
 
         elif opcion == "7":
+            reporte_inventario()
+
+        elif opcion == "8":
             print("Saliendo del sistema de inventario.")
             break
 
