@@ -1,6 +1,14 @@
 import sqlite3
 import hashlib
 import getpass
+import logging
+
+# Configuración de logging
+logging.basicConfig(
+    filename="inventario.log",
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s"
+)
 
 # Conectar a la base de datos
 def conectar_bd():
@@ -29,12 +37,12 @@ def inicializar_bd():
     ''')
     conn.commit()
     conn.close()
+    logging.info("Base de datos inicializada.")
 
 # Función para hashear contraseñas
 def hash_password(password):
     return hashlib.sha256(password.encode()).hexdigest()
 
-# Verificar si hay usuarios existentes
 def hay_usuarios():
     conn = conectar_bd()
     cursor = conn.cursor()
@@ -43,7 +51,6 @@ def hay_usuarios():
     conn.close()
     return cantidad > 0
 
-# Crear un nuevo usuario
 def crear_usuario():
     print("\n=== Crear usuario administrador ===")
     username = input("Nombre de usuario: ").strip()
@@ -55,9 +62,9 @@ def crear_usuario():
     cursor.execute("INSERT INTO usuarios (username, password_hash) VALUES (?, ?)", (username, password_hash))
     conn.commit()
     conn.close()
+    logging.info(f"Usuario administrador creado: {username}")
     print("Usuario creado con éxito.")
 
-# Verificar credenciales
 def autenticar_usuario():
     print("\n=== Inicio de Sesión ===")
     username = input("Usuario: ").strip()
@@ -69,9 +76,14 @@ def autenticar_usuario():
     cursor.execute("SELECT * FROM usuarios WHERE username = ? AND password_hash = ?", (username, password_hash))
     usuario = cursor.fetchone()
     conn.close()
-    return usuario is not None
+    
+    if usuario:
+        logging.info(f"Inicio de sesión exitoso: {username}")
+        return True
+    else:
+        logging.warning(f"Intento fallido de inicio de sesión: {username}")
+        return False
 
-# Función para agregar un producto
 def agregar_producto(nombre, descripcion, cantidad, precio, categoria):
     conn = conectar_bd()
     cursor = conn.cursor()
@@ -79,9 +91,9 @@ def agregar_producto(nombre, descripcion, cantidad, precio, categoria):
                    (nombre, descripcion, cantidad, precio, categoria))
     conn.commit()
     conn.close()
+    logging.info(f"Producto agregado: {nombre} ({cantidad} unidades, ${precio}, {categoria})")
     print(f"Producto '{nombre}' agregado con éxito.")
 
-# Función para mostrar todos los productos
 def mostrar_productos():
     conn = conectar_bd()
     cursor = conn.cursor()
@@ -97,25 +109,24 @@ def mostrar_productos():
     for producto in productos:
         print(f"ID: {producto[0]} | Nombre: {producto[1]} | Cantidad: {producto[3]} | Precio: ${producto[4]} | Categoría: {producto[5]}")
 
-# Función para actualizar la cantidad de un producto
 def actualizar_cantidad(id_producto, nueva_cantidad):
     conn = conectar_bd()
     cursor = conn.cursor()
     cursor.execute("UPDATE productos SET cantidad = ? WHERE id = ?", (nueva_cantidad, id_producto))
     conn.commit()
     conn.close()
+    logging.info(f"Cantidad actualizada para producto ID {id_producto} a {nueva_cantidad}.")
     print(f"Cantidad del producto ID {id_producto} actualizada a {nueva_cantidad}.")
 
-# Función para eliminar un producto
 def eliminar_producto(id_producto):
     conn = conectar_bd()
     cursor = conn.cursor()
     cursor.execute("DELETE FROM productos WHERE id = ?", (id_producto,))
     conn.commit()
     conn.close()
+    logging.info(f"Producto eliminado: ID {id_producto}")
     print(f"Producto ID {id_producto} eliminado.")
 
-# Función de búsqueda por nombre
 def buscar_producto(nombre):
     conn = conectar_bd()
     cursor = conn.cursor()
@@ -131,7 +142,6 @@ def buscar_producto(nombre):
     for producto in productos:
         print(f"ID: {producto[0]} | Nombre: {producto[1]} | Cantidad: {producto[3]} | Precio: ${producto[4]} | Categoría: {producto[5]}")
 
-# Función para registrar un nuevo usuario
 def registrar_usuario():
     print("\n=== Registrar nuevo usuario ===")
     username = input("Nuevo nombre de usuario: ").strip()
@@ -143,13 +153,14 @@ def registrar_usuario():
     try:
         cursor.execute("INSERT INTO usuarios (username, password_hash) VALUES (?, ?)", (username, password_hash))
         conn.commit()
+        logging.info(f"Nuevo usuario registrado: {username}")
         print(f"Usuario '{username}' registrado con éxito.")
     except sqlite3.IntegrityError:
+        logging.warning(f"Intento de registrar usuario duplicado: {username}")
         print("Error: El nombre de usuario ya existe.")
     finally:
         conn.close()
 
-# Función para mostrar reporte de inventario
 def reporte_inventario():
     conn = conectar_bd()
     cursor = conn.cursor()
@@ -169,6 +180,8 @@ def reporte_inventario():
     conn.commit()
     conn.close()
 
+    logging.info("Reporte de inventario generado.")
+
     print("\n--- Reporte de Inventario ---")
     if disponibles:
         print(f"\nProductos disponibles: {total_disponibles}")
@@ -185,9 +198,6 @@ def reporte_inventario():
             print(f"- {nombre}")
     else:
         print("\nProductos agotados: 0")
-
-# Inicializar la base de datos al ejecutar el script
-inicializar_bd()
 
 # Menú interactivo
 def menu():
@@ -234,6 +244,7 @@ def menu():
             reporte_inventario()
 
         elif opcion == "8":
+            logging.info("Sesión finalizada por el usuario.")
             print("Saliendo del sistema de inventario.")
             break
 
