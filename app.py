@@ -195,19 +195,33 @@ def busqueda_por_categoria(categoria):
 
 # Función de búsqueda por rango de precios
 def busqueda_por_precios(inferior, superior):
-    conn = conectar_bd()
-    cursor = conn.cursor()
-    cursor.execute("SELECT * FROM productos WHERE precio BETWEEN ? AND ?", (inferior, superior))
-    productos = cursor.fetchall()
-    conn.close()
+    try:
+        inferior = float(inferior)
+        superior = float(superior)
 
-    if not productos:
-        print(f"\nNo se encontraron productos entre el rango de precios '{inferior}' y '{superior}'.")
-        return
+        conn = conectar_bd()
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM productos WHERE precio BETWEEN ? AND ?", (inferior, superior))
+        productos = cursor.fetchall()
+        conn.close()
 
-    print("\nResultados de búsqueda:")
-    for producto in productos:
-        print(f"ID: {producto[0]} | Nombre: {producto[1]} | Cantidad: {producto[3]} | Precio: ${producto[4]} | Categoría: {producto[5]}")
+        if not productos:
+            logging.info(f"No se encontraron productos entre el rango de precios '{inferior}' y '{superior}'.")
+            print(f"\nNo se encontraron productos entre el rango de precios '{inferior}' y '{superior}'.")
+            return
+
+        print("\nResultados de búsqueda:")
+        for producto in productos:
+            print(f"ID: {producto[0]} | Nombre: {producto[1]} | Cantidad: {producto[3]} | Precio: ${producto[4]} | Categoría: {producto[5]}")
+
+    except ValueError:
+        logging.warning("El usuario ingresó un valor no numérico para los rangos de precios.")
+        print("\nError: Ingrese valores numéricos válidos para los rangos de precios.")
+    except sqlite3.Error as e:
+        logging.error(f"Error al realizar búsqueda: {e}")
+        print("\nError al realizar la búsqueda. Verifique los registros para más detalles.")
+    except Exception as e:
+        print(f"\nOcurrió un error inesperado: {e}")
 
 # Función para registrar un nuevo usuario
 def registrar_usuario():
