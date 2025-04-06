@@ -1,67 +1,113 @@
 import sqlite3
 import hashlib
 import getpass
+import logging
+
+# Configuración de logging
+logging.basicConfig(
+    filename="inventario.log",
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s"
+)
 
 # Conectar a la base de datos
 def conectar_bd():
-    return sqlite3.connect("inventario.db")
+    try:
+        return sqlite3.connect("inventario.db")
+    except sqlite3.Error as e:
+        logging.error(f"Error al conectar a la base de datos: {e}")
+        print("Error al conectar a la base de datos. Verifique los registros para más detalles.")
+        exit(1)
 
 # Crear las tablas si no existen
 def inicializar_bd():
-    conn = conectar_bd()
-    cursor = conn.cursor()
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS productos (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            nombre TEXT NOT NULL,
-            descripcion TEXT,
-            cantidad INTEGER NOT NULL,
-            precio REAL NOT NULL,
-            categoria TEXT NOT NULL
-        )
-    ''')
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS usuarios (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            username TEXT UNIQUE NOT NULL,
-            password_hash TEXT NOT NULL
-        )
-    ''')
-    conn.commit()
-    conn.close()
+    try:
+        conn = conectar_bd()
+        cursor = conn.cursor()
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS productos (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                nombre TEXT NOT NULL,
+                descripcion TEXT,
+                cantidad INTEGER NOT NULL,
+                precio REAL NOT NULL,
+                categoria TEXT NOT NULL
+            )
+        ''')
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS usuarios (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                username TEXT UNIQUE NOT NULL,
+                password_hash TEXT NOT NULL
+            )
+        ''')
+        conn.commit()
+        conn.close()
+        logging.info("Base de datos inicializada.")
+    except sqlite3.Error as e:
+        logging.error(f"Error al inicializar la base de datos: {e}")
+        print("Error al inicializar la base de datos. Verifique los registros para más detalles.")
+        exit(1)
 
 # Función para hashear contraseñas
 def hash_password(password):
-    return hashlib.sha256(password.encode()).hexdigest()
+    try:
+        return hashlib.sha256(password.encode()).hexdigest()
+    except Exception as e:
+        logging.error(f"Error al hashear la contraseña: {e}")
+        print("Error al procesar la contraseña. Verifique los registros para más detalles.")
+        exit(1)
 
-# Verificar si hay usuarios existentes
 def hay_usuarios():
-    conn = conectar_bd()
-    cursor = conn.cursor()
-    cursor.execute("SELECT COUNT(*) FROM usuarios")
-    cantidad = cursor.fetchone()[0]
-    conn.close()
-    return cantidad > 0
+    try:
+        conn = conectar_bd()
+        cursor = conn.cursor()
+        cursor.execute("SELECT COUNT(*) FROM usuarios")
+        cantidad = cursor.fetchone()[0]
+        conn.close()
+        return cantidad > 0
+    except sqlite3.Error as e:
+        logging.error(f"Error al verificar usuarios: {e}")
+        print("Error al verificar los usuarios. Verifique los registros para más detalles.")
+        exit(1)
 
-# Crear un nuevo usuario
 def crear_usuario():
     print("\n=== Crear usuario administrador ===")
     username = input("Nombre de usuario: ").strip()
     password = getpass.getpass("Contraseña: ").strip()
+
+    if not username or not password:
+        logging.warning("Intento de crear usuario con datos vacíos.")
+        print("El nombre de usuario y la contraseña no pueden estar vacíos.")
+        return
+
     password_hash = hash_password(password)
 
-    conn = conectar_bd()
-    cursor = conn.cursor()
-    cursor.execute("INSERT INTO usuarios (username, password_hash) VALUES (?, ?)", (username, password_hash))
-    conn.commit()
-    conn.close()
-    print("Usuario creado con éxito.")
+    try:
+        conn = conectar_bd()
+        cursor = conn.cursor()
+        cursor.execute("INSERT INTO usuarios (username, password_hash) VALUES (?, ?)", (username, password_hash))
+        conn.commit()
+        conn.close()
+        logging.info(f"Usuario administrador creado: {username}")
+        print("Usuario creado con éxito.")
+    except sqlite3.IntegrityError:
+        logging.warning(f"Intento fallido: el nombre de usuario '{username}' ya existe.")
+        print("Error: El nombre de usuario ya existe.")
+    except sqlite3.Error as e:
+        logging.error(f"Error al crear usuario: {e}")
+        print("Error al crear el usuario. Verifique los registros para más detalles.")
 
-# Verificar credenciales
 def autenticar_usuario():
     print("\n=== Inicio de Sesión ===")
     username = input("Usuario: ").strip()
     password = getpass.getpass("Contraseña: ").strip()
+
+    if not username or not password:
+        logging.warning("Intento de inicio de sesión con datos vacíos.")
+        print("El nombre de usuario y la contraseña no pueden estar vacíos.")
+        return False
+
     password_hash = hash_password(password)
 
     conn = conectar_bd()
@@ -173,53 +219,154 @@ def registrar_usuario():
     conn = conectar_bd()
     cursor = conn.cursor()
     try:
-        cursor.execute("INSERT INTO usuarios (username, password_hash) VALUES (?, ?)", (username, password_hash))
-        conn.commit()
-        print(f"Usuario '{username}' registrado con éxito.")
-    except sqlite3.IntegrityError:
-        print("Error: El nombre de usuario ya existe.")
-    finally:
+        conn = conectar_bd()
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM usuarios WHERE username = ? AND password_hash = ?", (username, password_hash))
+        usuario = cursor.fetchone()
         conn.close()
 
-# Función para mostrar reporte de inventario
+        if usuario:
+            logging.info(f"Inicio de sesión exitoso: {username}")
+            return True
+        else:
+            logging.warning(f"Intento fallido de inicio de sesión: {username}")
+            return False
+    except sqlite3.Error as e:
+        logging.error(f"Error al autenticar usuario: {e}")
+        print("Error al autenticar usuario. Verifique los registros para más detalles.")
+        return False
+
+def agregar_producto(nombre, descripcion, cantidad, precio, categoria):
+    if cantidad < 0 or precio < 0:
+        logging.warning(f"Intento de agregar producto con cantidad o precio negativo: {nombre}")
+        print("La cantidad y el precio no pueden ser negativos.")
+        return
+
+    try:
+        conn = conectar_bd()
+        cursor = conn.cursor()
+        cursor.execute("INSERT INTO productos (nombre, descripcion, cantidad, precio, categoria) VALUES (?, ?, ?, ?, ?)", 
+                       (nombre, descripcion, cantidad, precio, categoria))
+        conn.commit()
+        conn.close()
+        logging.info(f"Producto agregado: {nombre} ({cantidad} unidades, ${precio}, {categoria})")
+        print(f"Producto '{nombre}' agregado con éxito.")
+    except sqlite3.Error as e:
+        logging.error(f"Error al agregar producto: {e}")
+        print("Error al agregar el producto. Verifique los registros para más detalles.")
+
+def mostrar_productos():
+    try:
+        conn = conectar_bd()
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM productos")
+        productos = cursor.fetchall()
+        conn.close()
+
+        if not productos:
+            logging.info("No hay productos en el inventario.")
+            print("No hay productos en el inventario.")
+            return
+
+        print("\nInventario de productos:")
+        for producto in productos:
+            print(f"ID: {producto[0]} | Nombre: {producto[1]} | Cantidad: {producto[3]} | Precio: ${producto[4]} | Categoría: {producto[5]}")
+    except sqlite3.Error as e:
+        logging.error(f"Error al mostrar productos: {e}")
+        print("Error al mostrar los productos. Verifique los registros para más detalles.")
+
+def actualizar_cantidad(id_producto, nueva_cantidad):
+    if nueva_cantidad < 0:
+        logging.warning(f"Intento de actualizar cantidad a un valor negativo para el producto ID {id_producto}.")
+        print("La cantidad no puede ser negativa.")
+        return
+
+    try:
+        conn = conectar_bd()
+        cursor = conn.cursor()
+        cursor.execute("UPDATE productos SET cantidad = ? WHERE id = ?", (nueva_cantidad, id_producto))
+        conn.commit()
+        conn.close()
+        logging.info(f"Cantidad actualizada para producto ID {id_producto} a {nueva_cantidad}.")
+        print(f"Cantidad del producto ID {id_producto} actualizada a {nueva_cantidad}.")
+    except sqlite3.Error as e:
+        logging.error(f"Error al actualizar cantidad del producto ID {id_producto}: {e}")
+        print("Error al actualizar la cantidad. Verifique los registros para más detalles.")
+
+def eliminar_producto(id_producto):
+    try:
+        conn = conectar_bd()
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM productos WHERE id = ?", (id_producto,))
+        conn.commit()
+        conn.close()
+        logging.info(f"Producto eliminado: ID {id_producto}")
+        print(f"Producto ID {id_producto} eliminado.")
+    except sqlite3.Error as e:
+        logging.error(f"Error al eliminar producto ID {id_producto}: {e}")
+        print("Error al eliminar el producto. Verifique los registros para más detalles.")
+
+def buscar_producto(nombre):
+    try:
+        conn = conectar_bd()
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM productos WHERE nombre LIKE ?", ('%' + nombre + '%',))
+        productos = cursor.fetchall()
+        conn.close()
+
+        if not productos:
+            logging.info(f"No se encontraron productos con el nombre '{nombre}'.")
+            print(f"No se encontraron productos con el nombre '{nombre}'.")
+            return
+
+        print("\nResultados de búsqueda:")
+        for producto in productos:
+            print(f"ID: {producto[0]} | Nombre: {producto[1]} | Cantidad: {producto[3]} | Precio: ${producto[4]} | Categoría: {producto[5]}")
+    except sqlite3.Error as e:
+        logging.error(f"Error al buscar producto: {e}")
+        print("Error al buscar el producto. Verifique los registros para más detalles.")
+
 def reporte_inventario():
-    conn = conectar_bd()
-    cursor = conn.cursor()
+    try:
+        conn = conectar_bd()
+        cursor = conn.cursor()
 
-    cursor.execute("SELECT COUNT(*), SUM(cantidad * precio) FROM productos WHERE cantidad > 0")
-    total_disponibles, valor_total = cursor.fetchone()
+        cursor.execute("SELECT COUNT(*), SUM(cantidad * precio) FROM productos WHERE cantidad > 0")
+        total_disponibles, valor_total = cursor.fetchone()
 
-    cursor.execute("SELECT nombre, cantidad FROM productos WHERE cantidad > 0")
-    disponibles = cursor.fetchall()
+        cursor.execute("SELECT nombre, cantidad FROM productos WHERE cantidad > 0")
+        disponibles = cursor.fetchall()
 
-    cursor.execute("SELECT COUNT(*) FROM productos WHERE cantidad = 0")
-    total_agotados = cursor.fetchone()[0]
+        cursor.execute("SELECT COUNT(*) FROM productos WHERE cantidad = 0")
+        total_agotados = cursor.fetchone()[0]
 
-    cursor.execute("SELECT nombre FROM productos WHERE cantidad = 0")
-    agotados = cursor.fetchall()
+        cursor.execute("SELECT nombre FROM productos WHERE cantidad = 0")
+        agotados = cursor.fetchall()
 
-    conn.commit()
-    conn.close()
+        conn.commit()
+        conn.close()
 
-    print("\n--- Reporte de Inventario ---")
-    if disponibles:
-        print(f"\nProductos disponibles: {total_disponibles}")
-        for nombre, cantidad in disponibles:
-            print(f"- {nombre}: {cantidad} unidades")
-    else:
-        print("\nProductos disponibles: 0")
+        logging.info("Reporte de inventario generado.")
 
-    print(f"\nValor total del inventario: ${valor_total if valor_total else 0:.2f}")
+        print("\n--- Reporte de Inventario ---")
+        if disponibles:
+            print(f"\nProductos disponibles: {total_disponibles}")
+            for nombre, cantidad in disponibles:
+                print(f"- {nombre}: {cantidad} unidades")
+        else:
+            print("\nProductos disponibles: 0")
 
-    if agotados:
-        print(f"\nProductos agotados: {total_agotados}")
-        for (nombre,) in agotados:
-            print(f"- {nombre}")
-    else:
-        print("\nProductos agotados: 0")
+        if agotados:
+            print(f"\nProductos agotados: {total_agotados}")
+            for nombre in agotados:
+                print(f"- {nombre}")
+        else:
+            print("\nProductos agotados: 0")
 
-# Inicializar la base de datos al ejecutar el script
-inicializar_bd()
+        print(f"\nValor total del inventario disponible: ${valor_total}")
+    except sqlite3.Error as e:
+        logging.error(f"Error al generar el reporte de inventario: {e}")
+        print("Error al generar el reporte. Verifique los registros para más detalles.")
 
 # Menú interactivo
 def menu():
@@ -281,6 +428,7 @@ def menu():
             reporte_inventario()
 
         elif opcion == "8":
+            logging.info("Sesión finalizada por el usuario.")
             print("Saliendo del sistema de inventario.")
             break
 
