@@ -238,7 +238,7 @@ def busqueda_por_precios(inferior, superior):
         logging.warning("El usuario ingresó un valor no numérico para los rangos de precios.")
         print("\nError: Ingrese valores numéricos válidos para los rangos de precios.")
     except sqlite3.Error as e:
-        logging.error(f"Error al realizar búsqueda: {e}")
+        logging.error(f"Error al realizar búsqueda por rango de precios: {e}")
         print("\nError al realizar la búsqueda. Verifique los registros para más detalles.")
     except Exception as e:
         print(f"\nOcurrió un error inesperado: {e}")
