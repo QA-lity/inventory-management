@@ -116,7 +116,7 @@ def eliminar_producto(id_producto):
     print(f"Producto ID {id_producto} eliminado.")
 
 # Función de búsqueda por nombre
-def buscar_producto(nombre):
+def busqueda_por_nombre(nombre):
     conn = conectar_bd()
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM productos WHERE nombre LIKE ?", ('%' + nombre + '%',))
@@ -225,7 +225,7 @@ def menu():
 
         elif opcion == "5":
             nombre = input("Ingrese el nombre del producto a buscar: ")
-            buscar_producto(nombre)
+            busqueda_por_nombre(nombre)
 
         elif opcion == "6":
             registrar_usuario()
