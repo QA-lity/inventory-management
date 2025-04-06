@@ -131,6 +131,22 @@ def busqueda_por_nombre(nombre):
     for producto in productos:
         print(f"ID: {producto[0]} | Nombre: {producto[1]} | Cantidad: {producto[3]} | Precio: ${producto[4]} | Categoría: {producto[5]}")
 
+# Función de búsqueda por categoría
+def busqueda_por_categoria(categoria):
+    conn = conectar_bd()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM productos WHERE categoria LIKE ?", ('%' + categoria + '%',))
+    productos = cursor.fetchall()
+    conn.close()
+
+    if not productos:
+        print(f"No se encontraron productos de la categoría '{categoria}'.")
+        return
+
+    print("\nResultados de búsqueda:")
+    for producto in productos:
+        print(f"ID: {producto[0]} | Nombre: {producto[1]} | Cantidad: {producto[3]} | Precio: ${producto[4]} | Categoría: {producto[5]}")
+
 # Función para registrar un nuevo usuario
 def registrar_usuario():
     print("\n=== Registrar nuevo usuario ===")
