@@ -163,19 +163,29 @@ def eliminar_producto(id_producto):
 
 # Función de búsqueda por nombre
 def busqueda_por_nombre(nombre):
-    conn = conectar_bd()
-    cursor = conn.cursor()
-    cursor.execute("SELECT * FROM productos WHERE nombre LIKE ?", ('%' + nombre + '%',))
-    productos = cursor.fetchall()
-    conn.close()
-
-    if not productos:
-        print(f"\nNo se encontraron productos con el nombre '{nombre}'.")
+    if not nombre.strip():
+        logging.warning("Intento de búsqueda con nombre vacío.")
+        print("\nEl nombre no puede estar vacío.")
         return
 
-    print("\nResultados de búsqueda:")
-    for producto in productos:
-        print(f"ID: {producto[0]} | Nombre: {producto[1]} | Cantidad: {producto[3]} | Precio: ${producto[4]} | Categoría: {producto[5]}")
+    try:
+        conn = conectar_bd()
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM productos WHERE nombre LIKE ?", ('%' + nombre + '%',))
+        productos = cursor.fetchall()
+        conn.close()
+
+        if not productos:
+            logging.info(f"No se encontraron productos con el nombre '{nombre}'.")
+            print(f"\nNo se encontraron productos con el nombre '{nombre}'.")
+            return
+
+        print("\nResultados de búsqueda:")
+        for producto in productos:
+            print(f"ID: {producto[0]} | Nombre: {producto[1]} | Cantidad: {producto[3]} | Precio: ${producto[4]} | Categoría: {producto[5]}")
+    except sqlite3.Error as e:
+        logging.error(f"Error al buscar por nombre: {e}")
+        print("\nError al realizar la búsqueda. Verifique los registros para más detalles.")
 
 # Función de búsqueda por categoría
 def busqueda_por_categoria(categoria):
