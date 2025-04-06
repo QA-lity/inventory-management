@@ -147,6 +147,22 @@ def busqueda_por_categoria(categoria):
     for producto in productos:
         print(f"ID: {producto[0]} | Nombre: {producto[1]} | Cantidad: {producto[3]} | Precio: ${producto[4]} | Categoría: {producto[5]}")
 
+# Función de búsqueda por rango de precios
+def busqueda_por_precios(inferior, superior):
+    conn = conectar_bd()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM productos WHERE precio BETWEEN ? AND ?", (inferior, superior))
+    productos = cursor.fetchall()
+    conn.close()
+
+    if not productos:
+        print(f"No se encontraron productos entre los rangos de precios '{inferior}' y '{superior}'.")
+        return
+
+    print("\nResultados de búsqueda:")
+    for producto in productos:
+        print(f"ID: {producto[0]} | Nombre: {producto[1]} | Cantidad: {producto[3]} | Precio: ${producto[4]} | Categoría: {producto[5]}")
+
 # Función para registrar un nuevo usuario
 def registrar_usuario():
     print("\n=== Registrar nuevo usuario ===")
