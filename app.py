@@ -117,50 +117,6 @@ def autenticar_usuario():
     conn.close()
     return usuario is not None
 
-# Función para agregar un producto
-def agregar_producto(nombre, descripcion, cantidad, precio, categoria):
-    conn = conectar_bd()
-    cursor = conn.cursor()
-    cursor.execute("INSERT INTO productos (nombre, descripcion, cantidad, precio, categoria) VALUES (?, ?, ?, ?, ?)", 
-                   (nombre, descripcion, cantidad, precio, categoria))
-    conn.commit()
-    conn.close()
-    print(f"Producto '{nombre}' agregado con éxito.")
-
-# Función para mostrar todos los productos
-def mostrar_productos():
-    conn = conectar_bd()
-    cursor = conn.cursor()
-    cursor.execute("SELECT * FROM productos")
-    productos = cursor.fetchall()
-    conn.close()
-
-    if not productos:
-        print("No hay productos en el inventario.")
-        return
-
-    print("\nInventario de productos:")
-    for producto in productos:
-        print(f"ID: {producto[0]} | Nombre: {producto[1]} | Cantidad: {producto[3]} | Precio: ${producto[4]} | Categoría: {producto[5]}")
-
-# Función para actualizar la cantidad de un producto
-def actualizar_cantidad(id_producto, nueva_cantidad):
-    conn = conectar_bd()
-    cursor = conn.cursor()
-    cursor.execute("UPDATE productos SET cantidad = ? WHERE id = ?", (nueva_cantidad, id_producto))
-    conn.commit()
-    conn.close()
-    print(f"Cantidad del producto ID {id_producto} actualizada a {nueva_cantidad}.")
-
-# Función para eliminar un producto
-def eliminar_producto(id_producto):
-    conn = conectar_bd()
-    cursor = conn.cursor()
-    cursor.execute("DELETE FROM productos WHERE id = ?", (id_producto,))
-    conn.commit()
-    conn.close()
-    print(f"Producto ID {id_producto} eliminado.")
-
 # Función de búsqueda por nombre
 def busqueda_por_nombre(nombre):
     if not nombre.strip():
@@ -419,8 +375,13 @@ def menu():
         if opcion == "1":
             nombre = input("Nombre del producto: ")
             descripcion = input("Descripción: ")
-            cantidad = int(input("Cantidad: "))
-            precio = float(input("Precio: "))
+            try:
+                cantidad = int(input("Cantidad: "))
+                precio = float(input("Precio: "))
+            except ValueError as e:
+                logging.error(f"Error al convertir la cantidad o el precio: {e}")
+                print("Error: Ingrese valores numéricos válidos para la cantidad y el precio.")
+                return
             categoria = input("Categoría: ")
             agregar_producto(nombre, descripcion, cantidad, precio, categoria)
 
@@ -428,12 +389,22 @@ def menu():
             mostrar_productos()
 
         elif opcion == "3":
-            id_producto = int(input("Ingrese el ID del producto a actualizar: "))
-            nueva_cantidad = int(input("Nueva cantidad: "))
+            try:
+                id_producto = int(input("Ingrese el ID del producto a actualizar: "))
+                nueva_cantidad = int(input("Nueva cantidad: "))
+            except ValueError as e:
+                logging.error(f"Error al convertir el ID del producto o la nueva cantidad: {e}")
+                print("Error: Ingrese valores numéricos válidos para el ID del producto y la nueva cantidad.")
+                return
             actualizar_cantidad(id_producto, nueva_cantidad)
 
         elif opcion == "4":
-            id_producto = int(input("Ingrese el ID del producto a eliminar: "))
+            try:
+                id_producto = int(input("Ingrese el ID del producto a eliminar: "))
+            except ValueError as e:
+                logging.error(f"Error al convertir el ID del producto: {e}")
+                print("Error: Ingrese un valor numérico válido para el ID del producto.")
+                return
             eliminar_producto(id_producto)
 
         elif opcion == "5":
