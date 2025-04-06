@@ -1,5 +1,6 @@
 import sqlite3
 import hashlib
+import getpass
 
 # Conectar a la base de datos
 def conectar_bd():
@@ -46,7 +47,7 @@ def hay_usuarios():
 def crear_usuario():
     print("\n=== Crear usuario administrador ===")
     username = input("Nombre de usuario: ").strip()
-    password = input("Contraseña: ").strip()
+    password = getpass.getpass("Contraseña: ").strip()
     password_hash = hash_password(password)
 
     conn = conectar_bd()
@@ -60,7 +61,7 @@ def crear_usuario():
 def autenticar_usuario():
     print("\n=== Inicio de Sesión ===")
     username = input("Usuario: ").strip()
-    password = input("Contraseña: ").strip()
+    password = getpass.getpass("Contraseña: ").strip()
     password_hash = hash_password(password)
 
     conn = conectar_bd()
@@ -134,7 +135,7 @@ def buscar_producto(nombre):
 def registrar_usuario():
     print("\n=== Registrar nuevo usuario ===")
     username = input("Nuevo nombre de usuario: ").strip()
-    password = input("Contraseña: ").strip()
+    password = getpass.getpass("Contraseña: ").strip()
     password_hash = hash_password(password)
 
     conn = conectar_bd()
@@ -196,13 +197,14 @@ def menu():
             print("Opción inválida. Intente nuevamente.")
 
 # Inicialización y autenticación
-inicializar_bd()
+if __name__ == "__main__":
+    inicializar_bd()
 
-if not hay_usuarios():
-    crear_usuario()
+    if not hay_usuarios():
+        crear_usuario()
 
-if autenticar_usuario():
-    menu()
-else:
-    print("Usuario o contraseña incorrectos. No se pudo iniciar sesión. Terminando ejecución.")
+    if autenticar_usuario():
+        menu()
+    else:
+        print("Usuario o contraseña incorrectos. No se pudo iniciar sesión. Terminando ejecución.")
 
