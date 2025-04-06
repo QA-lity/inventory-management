@@ -1,10 +1,11 @@
 import sqlite3
+import hashlib
 
 # Conectar a la base de datos
 def conectar_bd():
     return sqlite3.connect("inventario.db")
 
-# Crear la tabla de productos si no existe
+# Crear las tablas si no existen
 def inicializar_bd():
     conn = conectar_bd()
     cursor = conn.cursor()
@@ -18,8 +19,56 @@ def inicializar_bd():
             categoria TEXT NOT NULL
         )
     ''')
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS usuarios (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT UNIQUE NOT NULL,
+            password_hash TEXT NOT NULL
+        )
+    ''')
     conn.commit()
     conn.close()
+
+# Función para hashear contraseñas
+def hash_password(password):
+    return hashlib.sha256(password.encode()).hexdigest()
+
+# Verificar si hay usuarios existentes
+def hay_usuarios():
+    conn = conectar_bd()
+    cursor = conn.cursor()
+    cursor.execute("SELECT COUNT(*) FROM usuarios")
+    cantidad = cursor.fetchone()[0]
+    conn.close()
+    return cantidad > 0
+
+# Crear un nuevo usuario
+def crear_usuario():
+    print("\n=== Crear usuario administrador ===")
+    username = input("Nombre de usuario: ").strip()
+    password = input("Contraseña: ").strip()
+    password_hash = hash_password(password)
+
+    conn = conectar_bd()
+    cursor = conn.cursor()
+    cursor.execute("INSERT INTO usuarios (username, password_hash) VALUES (?, ?)", (username, password_hash))
+    conn.commit()
+    conn.close()
+    print("Usuario creado con éxito.")
+
+# Verificar credenciales
+def autenticar_usuario():
+    print("\n=== Inicio de Sesión ===")
+    username = input("Usuario: ").strip()
+    password = input("Contraseña: ").strip()
+    password_hash = hash_password(password)
+
+    conn = conectar_bd()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM usuarios WHERE username = ? AND password_hash = ?", (username, password_hash))
+    usuario = cursor.fetchone()
+    conn.close()
+    return usuario is not None
 
 # Función para agregar un producto
 def agregar_producto(nombre, descripcion, cantidad, precio, categoria):
@@ -81,8 +130,23 @@ def buscar_producto(nombre):
     for producto in productos:
         print(f"ID: {producto[0]} | Nombre: {producto[1]} | Cantidad: {producto[3]} | Precio: ${producto[4]} | Categoría: {producto[5]}")
 
-# Inicializar la base de datos al ejecutar el script
-inicializar_bd()
+# Función para registrar un nuevo usuario
+def registrar_usuario():
+    print("\n=== Registrar nuevo usuario ===")
+    username = input("Nuevo nombre de usuario: ").strip()
+    password = input("Contraseña: ").strip()
+    password_hash = hash_password(password)
+
+    conn = conectar_bd()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("INSERT INTO usuarios (username, password_hash) VALUES (?, ?)", (username, password_hash))
+        conn.commit()
+        print(f"Usuario '{username}' registrado con éxito.")
+    except sqlite3.IntegrityError:
+        print("Error: El nombre de usuario ya existe.")
+    finally:
+        conn.close()
 
 # Menú interactivo
 def menu():
@@ -93,7 +157,8 @@ def menu():
         print("3. Actualizar cantidad de producto")
         print("4. Eliminar producto")
         print("5. Buscar producto por nombre")
-        print("6. Salir")
+        print("6. Registrar nuevo usuario")
+        print("7. Salir")
         opcion = input("Seleccione una opción: ")
 
         if opcion == "1":
@@ -121,12 +186,23 @@ def menu():
             buscar_producto(nombre)
 
         elif opcion == "6":
+            registrar_usuario()
+
+        elif opcion == "7":
             print("Saliendo del sistema de inventario.")
             break
 
         else:
             print("Opción inválida. Intente nuevamente.")
 
-# Ejecutar el menú
-menu()
+# Inicialización y autenticación
+inicializar_bd()
+
+if not hay_usuarios():
+    crear_usuario()
+
+if autenticar_usuario():
+    menu()
+else:
+    print("Usuario o contraseña incorrectos. No se pudo iniciar sesión. Terminando ejecución.")
 
