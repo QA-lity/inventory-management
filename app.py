@@ -292,6 +292,15 @@ def eliminar_producto(id_producto):
     try:
         conn = conectar_bd()
         cursor = conn.cursor()
+        
+        cursor.execute("SELECT * FROM productos WHERE id = ?", (id_producto,))
+        producto = cursor.fetchone()
+        
+        if not producto:
+            logging.warning(f"Intento de eliminar un producto que no existe: ID {id_producto}")
+            print(f"Error: El producto con ID {id_producto} no existe.")
+            return
+        
         cursor.execute("DELETE FROM productos WHERE id = ?", (id_producto,))
         conn.commit()
         conn.close()
