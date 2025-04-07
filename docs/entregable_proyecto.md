@@ -49,3 +49,5 @@ Además, usamos mensajes de commits descriptivos (usamos `gitmoji`) y una planti
 ![alt text](image-1.png)
 
 ## Problemas encontrados y soluciones
+
+Afortunadamente no se presentaron problemas durante el desarrollo de la tarea. Creemos que la forma en la que organizamos el proyecto, el flujo de trabajo que adoptamos y la aplicación de los contenidos del ramo nos ayudó a que el trabajo se desarrollara de forma fluida y con un buen estándar de calidad.
