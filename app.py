@@ -110,6 +110,104 @@ def autenticar_usuario():
 
     password_hash = hash_password(password)
 
+    conn = conectar_bd()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM usuarios WHERE username = ? AND password_hash = ?", (username, password_hash))
+    usuario = cursor.fetchone()
+    conn.close()
+    return usuario is not None
+
+# Función de búsqueda por nombre
+def busqueda_por_nombre(nombre):
+    if not nombre.strip():
+        logging.warning("Intento de búsqueda con nombre vacío.")
+        print("\nEl nombre no puede estar vacío.")
+        return
+
+    try:
+        conn = conectar_bd()
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM productos WHERE nombre LIKE ?", ('%' + nombre + '%',))
+        productos = cursor.fetchall()
+        conn.close()
+
+        if not productos:
+            logging.info(f"No se encontraron productos con el nombre '{nombre}'.")
+            print(f"\nNo se encontraron productos con el nombre '{nombre}'.")
+            return
+
+        print("\nResultados de búsqueda:")
+        for producto in productos:
+            print(f"ID: {producto[0]} | Nombre: {producto[1]} | Cantidad: {producto[3]} | Precio: ${producto[4]} | Categoría: {producto[5]}")
+    except sqlite3.Error as e:
+        logging.error(f"Error al buscar por nombre: {e}")
+        print("\nError al realizar la búsqueda. Verifique los registros para más detalles.")
+
+# Función de búsqueda por categoría
+def busqueda_por_categoria(categoria):
+    if not categoria.strip():
+        logging.warning("Intento de búsqueda con categoría vacía.")
+        print("\nLa categoría no puede estar vacía.")
+        return
+
+    try:
+        conn = conectar_bd()
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM productos WHERE categoria LIKE ?", ('%' + categoria + '%',))
+        productos = cursor.fetchall()
+        conn.close()
+
+        if not productos:
+            logging.info(f"No se encontraron productos de la categoría '{categoria}'.")
+            print(f"\nNo se encontraron productos de la categoría '{categoria}'.")
+            return
+
+        print("\nResultados de búsqueda:")
+        for producto in productos:
+            print(f"ID: {producto[0]} | Nombre: {producto[1]} | Cantidad: {producto[3]} | Precio: ${producto[4]} | Categoría: {producto[5]}")
+    except sqlite3.Error as e:
+        logging.error(f"Error al buscar por categoría: {e}")
+        print("\nError al realizar la búsqueda. Verifique los registros para más detalles.")
+
+# Función de búsqueda por rango de precios
+def busqueda_por_precios(inferior, superior):
+    try:
+        inferior = float(inferior)
+        superior = float(superior)
+
+        conn = conectar_bd()
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM productos WHERE precio BETWEEN ? AND ?", (inferior, superior))
+        productos = cursor.fetchall()
+        conn.close()
+
+        if not productos:
+            logging.info(f"No se encontraron productos entre el rango de precios '{inferior}' y '{superior}'.")
+            print(f"\nNo se encontraron productos entre el rango de precios '{inferior}' y '{superior}'.")
+            return
+
+        print("\nResultados de búsqueda:")
+        for producto in productos:
+            print(f"ID: {producto[0]} | Nombre: {producto[1]} | Cantidad: {producto[3]} | Precio: ${producto[4]} | Categoría: {producto[5]}")
+
+    except ValueError:
+        logging.warning("El usuario ingresó un valor no numérico para los rangos de precios.")
+        print("\nError: Ingrese valores numéricos válidos para los rangos de precios.")
+    except sqlite3.Error as e:
+        logging.error(f"Error al realizar búsqueda por rango de precios: {e}")
+        print("\nError al realizar la búsqueda. Verifique los registros para más detalles.")
+    except Exception as e:
+        print(f"\nOcurrió un error inesperado: {e}")
+
+# Función para registrar un nuevo usuario
+def registrar_usuario():
+    print("\n=== Registrar nuevo usuario ===")
+    username = input("Nuevo nombre de usuario: ").strip()
+    password = getpass.getpass("Contraseña: ").strip()
+    password_hash = hash_password(password)
+
+    conn = conectar_bd()
+    cursor = conn.cursor()
     try:
         conn = conectar_bd()
         cursor = conn.cursor()
@@ -129,6 +227,11 @@ def autenticar_usuario():
         return False
 
 def agregar_producto(nombre, descripcion, cantidad, precio, categoria):
+    if not nombre.strip() or not descripcion.strip() or not categoria.strip():
+        logging.warning("Intento de agregar producto con campos vacíos.")
+        print("Todos los campos son obligatorios.")
+        return
+
     if cantidad < 0 or precio < 0:
         logging.warning(f"Intento de agregar producto con cantidad o precio negativo: {nombre}")
         print("La cantidad y el precio no pueden ser negativos.")
@@ -189,6 +292,15 @@ def eliminar_producto(id_producto):
     try:
         conn = conectar_bd()
         cursor = conn.cursor()
+        
+        cursor.execute("SELECT * FROM productos WHERE id = ?", (id_producto,))
+        producto = cursor.fetchone()
+        
+        if not producto:
+            logging.warning(f"Intento de eliminar un producto que no existe: ID {id_producto}")
+            print(f"Error: El producto con ID {id_producto} no existe.")
+            return
+        
         cursor.execute("DELETE FROM productos WHERE id = ?", (id_producto,))
         conn.commit()
         conn.close()
@@ -268,7 +380,7 @@ def menu():
         print("2. Mostrar inventario")
         print("3. Actualizar cantidad de producto")
         print("4. Eliminar producto")
-        print("5. Buscar producto por nombre")
+        print("5. Filtrado y búsqueda")
         print("6. Registrar nuevo usuario")
         print("7. Reporte de inventario")
         print("8. Salir")
@@ -277,8 +389,13 @@ def menu():
         if opcion == "1":
             nombre = input("Nombre del producto: ")
             descripcion = input("Descripción: ")
-            cantidad = int(input("Cantidad: "))
-            precio = float(input("Precio: "))
+            try:
+                cantidad = int(input("Cantidad: "))
+                precio = float(input("Precio: "))
+            except ValueError as e:
+                logging.error(f"Error al convertir la cantidad o el precio: {e}")
+                print("Error: Ingrese valores numéricos válidos para la cantidad y el precio.")
+                return
             categoria = input("Categoría: ")
             agregar_producto(nombre, descripcion, cantidad, precio, categoria)
 
@@ -286,17 +403,42 @@ def menu():
             mostrar_productos()
 
         elif opcion == "3":
-            id_producto = int(input("Ingrese el ID del producto a actualizar: "))
-            nueva_cantidad = int(input("Nueva cantidad: "))
+            try:
+                id_producto = int(input("Ingrese el ID del producto a actualizar: "))
+                nueva_cantidad = int(input("Nueva cantidad: "))
+            except ValueError as e:
+                logging.error(f"Error al convertir el ID del producto o la nueva cantidad: {e}")
+                print("Error: Ingrese valores numéricos válidos para el ID del producto y la nueva cantidad.")
+                return
             actualizar_cantidad(id_producto, nueva_cantidad)
 
         elif opcion == "4":
-            id_producto = int(input("Ingrese el ID del producto a eliminar: "))
+            try:
+                id_producto = int(input("Ingrese el ID del producto a eliminar: "))
+            except ValueError as e:
+                logging.error(f"Error al convertir el ID del producto: {e}")
+                print("Error: Ingrese un valor numérico válido para el ID del producto.")
+                return
             eliminar_producto(id_producto)
 
         elif opcion == "5":
-            nombre = input("Ingrese el nombre del producto a buscar: ")
-            buscar_producto(nombre)
+            print("\n1. Búsqueda por nombre")
+            print("2. Búsqueda por categoría")
+            print("3. Búsqueda por rango de precios")
+            opcion = input("Seleccione una opción: ")
+
+            if opcion == "1":
+                nombre = input("\nIngrese el nombre del producto a buscar: ")
+                busqueda_por_nombre(nombre)
+
+            elif opcion == "2":
+                categoria = input("\nIngrese la categoría del producto a buscar: ")
+                busqueda_por_categoria(categoria)
+
+            elif opcion == "3":
+                inferior = input("\nIngrese el rango inferior: ")
+                superior = input("Ingrese el rango superior: ")
+                busqueda_por_precios(inferior, superior)
 
         elif opcion == "6":
             registrar_usuario()
