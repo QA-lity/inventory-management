@@ -227,6 +227,11 @@ def registrar_usuario():
         return False
 
 def agregar_producto(nombre, descripcion, cantidad, precio, categoria):
+    if not nombre.strip() or not descripcion.strip() or not categoria.strip():
+        logging.warning("Intento de agregar producto con campos vacíos.")
+        print("Todos los campos son obligatorios.")
+        return
+
     if cantidad < 0 or precio < 0:
         logging.warning(f"Intento de agregar producto con cantidad o precio negativo: {nombre}")
         print("La cantidad y el precio no pueden ser negativos.")
