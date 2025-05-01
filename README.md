@@ -24,7 +24,7 @@ Este proyecto es una aplicación de gestión de inventario para un emprendedor q
 
 ## Uso
 1. Al iniciar el programa, se muestra un menú interactivo.
-2. Seleccione la opción deseada (Agregar, Mostrar, Actualizar, Eliminar, Buscar, Salir).
+2. Seleccione la opción deseada.
 3. Siga las instrucciones en pantalla.
 
 ## Cómo contribuir
